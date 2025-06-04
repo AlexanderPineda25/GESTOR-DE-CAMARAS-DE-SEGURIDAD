@@ -6,5 +6,4 @@ public enum FilterType {
     EDGE_DETECTION,
     SEPIA,
     INVERT,
-    // ...agrega los filtros que necesites
 }

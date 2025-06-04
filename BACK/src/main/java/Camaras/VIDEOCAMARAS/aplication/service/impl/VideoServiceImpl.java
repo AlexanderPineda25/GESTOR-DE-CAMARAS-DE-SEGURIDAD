@@ -10,6 +10,13 @@ import Camaras.VIDEOCAMARAS.infraestructure.mapper.VideoMapper;
 import Camaras.VIDEOCAMARAS.shared.dto.VideoDto;
 import Camaras.VIDEOCAMARAS.shared.exceptions.NotFoundException;
 import Camaras.VIDEOCAMARAS.aplication.service.RedisService;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacv.FFmpegFrameRecorder;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameConverter; // Esta importa el Convertidor que te da bytedeco.opencv.opencv_core.Mat
+import org.bytedeco.opencv.opencv_core.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +25,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayInputStream;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import org.bytedeco.opencv.opencv_core.Mat; // <--- Importación correcta de Mat para Byedeco
+import org.bytedeco.opencv.global.opencv_imgproc; // <--- Importación correcta de Imgproc para Byedeco
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDateTime;
@@ -51,7 +63,6 @@ public class VideoServiceImpl implements VideoService {
         this.redisService = redisService;
     }
 
-    // Guarda un video en disco y lo registra en base de datos
     @Override
     @Transactional
     public VideoDto saveVideo(VideoDto videoDto, Long cameraId, byte[] videoData) {
@@ -68,20 +79,18 @@ public class VideoServiceImpl implements VideoService {
                 throw new IllegalArgumentException("The video exceeds the maximum allowed size");
             }
 
-            // Asegura directorio
             Path cameraPath = Paths.get(storagePath, camera.getId().toString());
             if (autoCreateDirs && !Files.exists(cameraPath)) {
                 Files.createDirectories(cameraPath);
             }
 
-            // Guarda a disco
             String fileName = "video_" + System.currentTimeMillis() + ".mp4";
             Path filePath = cameraPath.resolve(fileName);
             Files.write(filePath, videoData);
 
-            // Registra en base de datos
             Video video = VideoFactory.create(videoDto, camera).toBuilder()
                     .filePath(filePath.toString())
+                    .data(videoData)
                     .build();
             Video saved = videoRepository.save(video);
 
@@ -93,7 +102,80 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    // Busca un video por ID
+    @Override
+    public void reconstruirVideoDesdeRedis(Long cameraId, int startIndex, int endIndex, String outputFilePath) throws Exception {
+        List<byte[]> fragments = redisService.getVideoFragments(cameraId, startIndex, endIndex);
+
+        int width = 854;     // 480p widescreen
+        int height = 480;
+        int fps = 25;        // Fluidez óptima para la mayoría de usos
+        int videoBitrate = 800_000; // Puedes ajustar: más alto = mejor calidad, más bajo = menor peso
+
+        log.info("Iniciando reconstrucción de video: cámara={}, frames={}, fps={}, bitrate={}",
+                cameraId, fragments.size(), fps, videoBitrate);
+
+        long t0 = System.currentTimeMillis();
+
+        FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputFilePath, width, height);
+        recorder.setFormat("mp4");
+        recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
+        recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
+        recorder.setFrameRate(fps);
+        recorder.setVideoBitrate(videoBitrate);
+        recorder.start();
+
+        Java2DFrameConverter java2DConverter = new Java2DFrameConverter();
+        OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
+
+        int frameCount = 0;
+        for (byte[] jpegBytes : fragments) {
+            ByteArrayInputStream bais = new ByteArrayInputStream(jpegBytes);
+            BufferedImage img = ImageIO.read(bais);
+            if (img == null) {
+                log.warn("Frame {} no se pudo leer como imagen, se omite.", frameCount);
+                continue;
+            }
+            Frame frame = java2DConverter.convert(img);
+
+            Mat mat = converter.convert(frame);
+
+            // Siempre asegura color (convierte a BGR si es necesario)
+            Mat bgrMat = new Mat();
+            if (mat.channels() == 1) {
+                opencv_imgproc.cvtColor(mat, bgrMat, opencv_imgproc.COLOR_GRAY2BGR);
+            } else {
+                bgrMat = mat;
+            }
+
+            // Redimensiona a 480p
+            Mat resized = new Mat();
+            opencv_imgproc.resize(bgrMat, resized, new Size(width, height));
+
+            Mat yuv420pMat = new Mat();
+            opencv_imgproc.cvtColor(resized, yuv420pMat, opencv_imgproc.COLOR_BGR2YUV_I420);
+            Frame yuvFrame = converter.convert(yuv420pMat);
+
+            recorder.record(yuvFrame);
+
+            mat.release();
+            if (mat.channels() == 1) bgrMat.release();
+            resized.release();
+            yuv420pMat.release();
+
+            frameCount++;
+        }
+
+        recorder.stop();
+        recorder.release();
+
+        long t1 = System.currentTimeMillis();
+        log.info("Reconstrucción finalizada: cámara={}, frames procesados={}, tiempo total={}ms, FPS destino={}",
+                cameraId, frameCount, (t1 - t0), fps);
+    }
+
+
+
+
     @Override
     public Optional<VideoDto> findById(Long id) {
         try {
@@ -110,7 +192,6 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    // Busca todos los videos de una cámara
     @Override
     public List<VideoDto> findByCameraId(Long cameraId) {
         try {
@@ -125,7 +206,6 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    // Busca el video más reciente de una cámara
     @Override
     public Optional<VideoDto> findLatestByCameraId(Long cameraId) {
         try {
@@ -143,7 +223,6 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    // Retorna el recurso físico (archivo) del video
     @Override
     public Resource getVideoResource(Long videoId) {
         try {
@@ -162,7 +241,6 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    // --- Cache de video (opcional, solo si usas Redis/Cache) ---
     @Override
     public Optional<VideoDto> getVideoFromCache(Long cameraId, String videoKey) {
         try {
@@ -179,14 +257,11 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    // Retorna todos los videos de la base de datos para una cámara (igual a findByCameraId)
     @Override
     public List<VideoDto> getVideosFromDatabase(Long cameraId) {
-        // Alias de findByCameraId, para compatibilidad
         return findByCameraId(cameraId);
     }
 
-    // Registra y cachea un video nuevo (usado desde controller, por ejemplo)
     @Override
     @Transactional
     public VideoDto registerVideo(Long cameraId, VideoDto videoDto, byte[] videoData) {
@@ -198,7 +273,6 @@ public class VideoServiceImpl implements VideoService {
 
             VideoDto saved = saveVideo(videoDtoWithCreated, cameraId, videoData);
 
-            // Cachea el último video si usas Redis
             redisService.cacheVideo(cameraId, "latest", saved);
 
             log.info("Video registrado y cacheado: id={}, cameraId={}", saved.getId(), cameraId);

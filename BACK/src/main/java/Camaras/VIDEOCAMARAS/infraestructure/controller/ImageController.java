@@ -25,7 +25,6 @@ public class ImageController {
         this.imageService = imageService;
     }
 
-    // Guardar imagen asociada a una cámara
     @PostMapping("/{cameraId}/save")
     public ResponseEntity<ImageDto> saveImage(
             @PathVariable Long cameraId,
@@ -43,7 +42,6 @@ public class ImageController {
         }
     }
 
-    // Obtener todas las imágenes de una cámara
     @GetMapping("/{cameraId}")
     public ResponseEntity<List<ImageDto>> getImagesByCameraId(@PathVariable Long cameraId) {
         try {
@@ -59,7 +57,6 @@ public class ImageController {
         }
     }
 
-    // Obtener una imagen por ID
     @GetMapping("/by-id/{imageId}")
     public ResponseEntity<ImageDto> getImageById(@PathVariable Long imageId) {
         try {
@@ -77,7 +74,6 @@ public class ImageController {
         }
     }
 
-    // Eliminar una imagen
     @DeleteMapping("/{imageId}")
     public ResponseEntity<Void> deleteImage(@PathVariable Long imageId) {
         try {
@@ -90,7 +86,6 @@ public class ImageController {
         }
     }
 
-    // Registrar imagen capturada (puede ser similar a saveImage, pero separado si tienes lógica extra)
     @PostMapping("/{cameraId}/capture")
     public ResponseEntity<ImageDto> registerCapturedImage(
             @PathVariable Long cameraId,

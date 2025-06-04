@@ -101,7 +101,6 @@ public class ImageProcessingEngine {
         return SUPPORTED_FORMATS.contains(extension) ? extension : "jpg";
     }
 
-    // Filtros
     private static BufferedImage applyGrayscale(BufferedImage src) {
         BufferedImage result = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
         Graphics g = result.getGraphics();
@@ -140,7 +139,6 @@ public class ImageProcessingEngine {
     }
 
     private static BufferedImage applyBlur(BufferedImage src) {
-        // Implementación básica de desenfoque (puedes mejorarla)
         BufferedImage result = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
 
         for (int y = 1; y < src.getHeight() - 1; y++) {
@@ -168,7 +166,6 @@ public class ImageProcessingEngine {
     }
 
     private static BufferedImage applyEdgeDetection(BufferedImage src) {
-        // Implementación básica de detección de bordes (Sobel)
         BufferedImage gray = applyGrayscale(src);
         BufferedImage result = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
 
@@ -212,6 +209,4 @@ public class ImageProcessingEngine {
         }
         return result;
     }
-
-
 }

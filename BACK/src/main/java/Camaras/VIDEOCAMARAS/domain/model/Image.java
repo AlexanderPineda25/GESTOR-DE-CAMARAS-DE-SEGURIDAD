@@ -22,11 +22,11 @@ public class Image {
     private final Camera camera;
 
     @Column(nullable = false)
-    private final String filePath; // Ruta o URL del archivo
+    private final String filePath;
 
     @Lob
     @Basic(fetch = FetchType.EAGER)
-    private final byte[] data; // Imagen binaria (opcional, por si la quieres en DB)
+    private final byte[] data;
 
     @Column(nullable = false)
     private final LocalDateTime createdAt;

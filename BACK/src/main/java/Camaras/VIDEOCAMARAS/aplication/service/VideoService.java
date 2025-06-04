@@ -15,4 +15,6 @@ public interface VideoService {
     List<VideoDto> getVideosFromDatabase(Long cameraId);
     VideoDto registerVideo(Long cameraId, VideoDto videoDto, byte[] videoData);
     Optional<VideoDto> getVideoFromCache(Long cameraId, String videoKey);
+    void reconstruirVideoDesdeRedis(Long cameraId, int startIndex, int endIndex, String outputFilePath) throws Exception;
+
 }

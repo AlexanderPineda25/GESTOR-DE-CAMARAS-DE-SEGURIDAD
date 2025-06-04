@@ -11,8 +11,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.springframework.util.SerializationUtils.serialize;
@@ -38,6 +37,7 @@ public class RedisServiceImpl implements RedisService {
     private String videoKey(Long cameraId, String videoKey) {
         return "camera:" + cameraId + ":video:" + videoKey;
     }
+
     private String imageKey(Long cameraId, String imageKey) {
         return "camera:" + cameraId + ":image:" + imageKey;
     }
@@ -183,4 +183,56 @@ public class RedisServiceImpl implements RedisService {
         // Alias para getImage, por compatibilidad
         return getImage(cameraId, imageKey);
     }
+
+    @Override
+    public void cacheVideoFragment(Long cameraId, int fragmentIndex, byte[] fragmentBytes, int ttlSec) {
+        String key = "camera:" + cameraId + ":video:fragment:" + fragmentIndex;
+        redisTemplate.opsForValue().set(key, fragmentBytes, ttlSec, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set("camera:" + cameraId + ":frame:counter", fragmentIndex + 1);
+
+    }
+
+    @Override
+    public Optional<byte[]> getVideoFragment(Long cameraId, int fragmentIndex) {
+        String key = "camera:" + cameraId + ":video:fragment:" + fragmentIndex;
+        byte[] fragment = (byte[]) redisTemplate.opsForValue().get(key);
+        return Optional.ofNullable(fragment);
+    }
+
+    @Override
+    public void deleteAllVideoFragments(Long cameraId, int maxFragments) {
+        for (int i = 0; i < maxFragments; i++) {
+            String key = "camera:" + cameraId + ":video:fragment:" + i;
+            redisTemplate.delete(key);
+        }
+    }
+
+    @Override
+    public List<byte[]> getVideoFragments(Long cameraId, int startIndex, int endIndex) {
+        List<byte[]> fragments = new ArrayList<>();
+        for (int i = startIndex; i <= endIndex; i++) {
+            getVideoFragment(cameraId, i).ifPresent(fragments::add);
+        }
+        return fragments;
+    }
+
+    @Override
+    public int getLastFrameIndexFromRedis(Long cameraId) {
+        String pattern = "camera:" + cameraId + ":video:fragment:*";
+        Set<String> keys = redisTemplate.keys(pattern);
+        if (keys == null || keys.isEmpty()) return -1;
+        int max = -1;
+        for (String key : keys) {
+            // Extrae el índice de la clave
+            String[] parts = key.split(":");
+            try {
+                int idx = Integer.parseInt(parts[parts.length - 1]);
+                if (idx > max) max = idx;
+            } catch (NumberFormatException e) {
+                // Ignora claves mal formadas
+            }
+        }
+        return max;
+    }
+
 }

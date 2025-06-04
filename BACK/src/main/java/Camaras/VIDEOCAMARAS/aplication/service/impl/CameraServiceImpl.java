@@ -247,8 +247,8 @@ public class CameraServiceImpl implements CameraService {
             log.info("Cámara creada exitosamente: id={}, ip={}", saved.getId(), saved.getIp());
             return saved;
         } catch (Exception e) {
-            log.error("Error creando cámara (IfNotExists): {}", e.getMessage(), e);
-            throw e;
+            log.warn("Error creando cámara (IfNotExists): {}", e.getMessage());
+            return null;
         }
     }
 }

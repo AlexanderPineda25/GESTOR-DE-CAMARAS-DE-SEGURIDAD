@@ -3,10 +3,9 @@ package Camaras.VIDEOCAMARAS.aplication.service.impl;
 import Camaras.VIDEOCAMARAS.aplication.service.VideoStreamingManager;
 import Camaras.VIDEOCAMARAS.aplication.service.VideoService;
 import Camaras.VIDEOCAMARAS.domain.repository.CameraRepository;
+import Camaras.VIDEOCAMARAS.infraestructure._Websocket.WebSocketSessionAdapter;
 import Camaras.VIDEOCAMARAS.shared.dto.VideoDto;
 import Camaras.VIDEOCAMARAS.shared.exceptions.NotFoundException;
-import jakarta.websocket.CloseReason;
-import jakarta.websocket.Session;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
@@ -21,7 +20,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -56,9 +54,6 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
         this.cameraRepository = cameraRepository;
     }
 
-    /**
-     * Convierte un Frame de JavaCV a byte[] en formato JPEG.
-     */
     private byte[] convertFrameToBytes(Frame frame) throws IOException {
         BufferedImage image = converter.getBufferedImage(frame);
         if (image == null) {
@@ -71,9 +66,6 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
         }
     }
 
-    /**
-     * HTTP streaming de archivo MP4 grabado (no realtime).
-     */
     @Override
     public StreamingResponseBody streamVideoHttp(Long cameraId) {
         return outputStream -> {
@@ -100,11 +92,8 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
         };
     }
 
-    /**
-     * WebSocket streaming realtime (frame by frame, usando FrameGrabberService).
-     */
     @Override
-    public void startStreamingWebSocket(Long cameraId, Session session) {
+    public void startStreamingWebSocket(Long cameraId, WebSocketSessionAdapter session) {
         streamingExecutor.submit(() -> {
             String sessionId = session.getId();
             log.info("Iniciando WebSocket streaming para cámara {} y sesión {}", cameraId, sessionId);
@@ -119,7 +108,7 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
                     if (frame != null) {
                         byte[] frameBytes = convertFrameToBytes(frame);
                         if (frameBytes != null && frameBytes.length <= maxFrameSize) {
-                            session.getBasicRemote().sendBinary(ByteBuffer.wrap(frameBytes));
+                            session.sendMessage(frameBytes);
                             lastFrameTime = System.currentTimeMillis();
                             log.debug("Frame enviado a sesión {}", sessionId);
                         }
@@ -133,7 +122,7 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
             } catch (Exception e) {
                 log.error("Error en streaming WebSocket cámara {}: {}", cameraId, e.getMessage(), e);
                 try {
-                    session.close(new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, "Error de streaming"));
+                    session.close();
                 } catch (IOException ioException) {
                     log.error("Error cerrando sesión WebSocket {}", sessionId, ioException);
                 }
@@ -142,9 +131,6 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
         });
     }
 
-    /**
-     * Snapshot/captura de frame único usando FrameGrabberService.
-     */
     @Override
     public byte[] captureFrame(Long cameraId) {
         try {
@@ -160,11 +146,8 @@ public class VideoStreamingManagerImpl implements VideoStreamingManager {
         }
     }
 
-    /**
-     * Alias para compatibilidad (puedes dirigir al HTTP o a un realtime si algún día quieres cambiar la lógica).
-     */
     @Override
     public StreamingResponseBody streamVideo(Long cameraId) {
-        return streamVideoHttp(cameraId); // Alias, mantiene compatibilidad
+        return streamVideoHttp(cameraId);
     }
 }

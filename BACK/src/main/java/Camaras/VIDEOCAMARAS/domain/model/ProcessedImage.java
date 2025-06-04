@@ -17,22 +17,20 @@ public class ProcessedImage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private final Long id;
 
-    // Relación con la imagen original
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "original_image_id", nullable = false)
     private final Image originalImage;
 
-    // Qué filtro se aplicó
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private final FilterType filterType;
 
     @Column(nullable = false)
-    private final String filePath; // Ruta o URL del archivo procesado
+    private final String filePath;
 
     @Lob
     @Basic(fetch = FetchType.EAGER)
-    private final byte[] data; // Si almacenas el archivo binario en la DB
+    private final byte[] data;
 
     @Column(nullable = false)
     private final LocalDateTime processedAt;

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -138,7 +139,16 @@ public class ProcessedImageServiceImpl implements ProcessedImageService {
             Image originalImage = imageRepository.findById(originalImageId)
                     .orElseThrow(() -> new NotFoundException("Original image not found"));
 
-            // Procesa la imagen usando el engine
+            log.info("Procesando imagen original con filePath: '{}'", originalImage.getFilePath());
+            if (originalImage.getFilePath() == null || originalImage.getFilePath().isBlank()) {
+                log.error("filePath de la imagen original es null o vacío. No se puede procesar.");
+                throw new IllegalStateException("No se puede procesar una imagen sin filePath válido");
+            }
+            File f = new File(originalImage.getFilePath());
+            if (!f.exists() || !f.isFile()) {
+                log.error("El archivo de imagen no existe físicamente: '{}'", f.getAbsolutePath());
+                throw new IllegalStateException("No existe el archivo de imagen original para procesar");
+            }
             String processedFilePath = imageProcessingEngine.applyFilters(originalImage.getFilePath(), List.of(filterType));
             byte[] processedData = Files.readAllBytes(Path.of(processedFilePath));
 

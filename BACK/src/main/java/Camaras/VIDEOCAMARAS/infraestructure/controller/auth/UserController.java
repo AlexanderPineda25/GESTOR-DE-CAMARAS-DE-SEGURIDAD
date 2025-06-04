@@ -54,7 +54,6 @@ public class UserController {
         return ResponseEntity.ok(cameraService.findCamerasByUserId(userId));
     }
 
-    // Nuevo endpoint para crear usuario
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<UserDto> createUser(@RequestBody RegisterDto registerDto) {
@@ -80,12 +79,10 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-
-    // Nuevo endpoint para eliminar usuario
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
-        userService.deleteUserById(userId);  // Debes implementar este método en UserService
+        userService.deleteUserById(userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -103,7 +100,7 @@ public class UserController {
 
     @GetMapping("/by-email")
     public ResponseEntity<UserDto> getUserByEmail(@RequestParam String email) {
-        User user = userService.findEntityByEmail(email); // Ya existe en tu código
+        User user = userService.findEntityByEmail(email);
         return ResponseEntity.ok(UserMapper.toDto(user));
     }
 }

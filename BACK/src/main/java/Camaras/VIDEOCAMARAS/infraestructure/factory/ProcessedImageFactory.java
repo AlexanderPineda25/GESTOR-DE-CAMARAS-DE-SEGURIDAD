@@ -16,10 +16,15 @@ public class ProcessedImageFactory {
         if (originalImage == null) throw new IllegalArgumentException("Image original no puede ser null");
         if (filterType == null) throw new IllegalArgumentException("FilterType no puede ser null");
 
+        String filePath = dto.getFilePath();
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalArgumentException("El filePath de la imagen procesada no puede ser null ni vacío");
+        }
+
         return ProcessedImage.builder()
                 .originalImage(originalImage)
                 .filterType(filterType)
-                .filePath(dto.getFilePath())
+                .filePath(filePath)
                 .data(dto.getRawImage()) // solo si lo manejas
                 .processedAt(dto.getProcessedAt() != null ? dto.getProcessedAt() : LocalDateTime.now())
                 .build();

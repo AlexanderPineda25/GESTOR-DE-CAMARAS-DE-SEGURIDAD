@@ -30,7 +30,9 @@ public class SecurityConfig {
             "/app/**",        // Aplicación STOMP
             "/video-stream/**",
             "/v3/api-docs/**",
-            "/swagger-ui/**"
+            "/swagger-ui/**",
+            "/video-ws/**",
+            "/web/reports/**"
     };
 
     private static final String ADMIN_PATH = "/admin/**";

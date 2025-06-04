@@ -21,13 +21,11 @@ public class Video {
     @JoinColumn(name = "camera_id", nullable = false)
     private Camera camera;
 
-    @Column(nullable = false)
-    private String filePath; // Opcional si quieres guardar la ruta también
+    private String filePath;
 
     @Lob
     @Basic(fetch = FetchType.EAGER)
-    @Column(name = "data", nullable = false)
-    private byte[] data; // El video binario en la BD
+    private byte[] data;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -36,6 +34,5 @@ public class Video {
     private Double duration; // Segundos
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private VideoStatus status;
 }

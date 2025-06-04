@@ -23,7 +23,6 @@ public class ProcessedImageController {
         this.processedImageService = processedImageService;
     }
 
-    // Procesar y guardar una imagen a partir de la original
     @PostMapping("/process")
     public ResponseEntity<ProcessedImageDto> processImage(
             @RequestParam Long originalImageId,
@@ -45,7 +44,6 @@ public class ProcessedImageController {
         }
     }
 
-    // Listar todas las imágenes procesadas
     @GetMapping
     public ResponseEntity<List<ProcessedImageDto>> getAllProcessedImages() {
         try {
@@ -58,7 +56,6 @@ public class ProcessedImageController {
         }
     }
 
-    // Obtener una imagen procesada por id
     @GetMapping("/{id}")
     public ResponseEntity<ProcessedImageDto> getProcessedImageById(@PathVariable Long id) {
         try {
@@ -77,7 +74,6 @@ public class ProcessedImageController {
         }
     }
 
-    // Descargar bytes de la imagen procesada
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> downloadProcessedImage(@PathVariable Long id) {
         try {
@@ -95,7 +91,6 @@ public class ProcessedImageController {
         }
     }
 
-    // Eliminar una imagen procesada
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProcessedImage(@PathVariable Long id) {
         try {
@@ -111,7 +106,6 @@ public class ProcessedImageController {
         }
     }
 
-    // Listar imágenes procesadas por filtro
     @GetMapping("/filter/{filterType}")
     public ResponseEntity<List<ProcessedImageDto>> getProcessedImagesByFilter(@PathVariable String filterType) {
         try {
@@ -128,7 +122,6 @@ public class ProcessedImageController {
         }
     }
 
-    // Listar imágenes procesadas por imagen original
     @GetMapping("/original/{originalImageId}")
     public ResponseEntity<List<ProcessedImageDto>> getProcessedImagesByOriginal(@PathVariable Long originalImageId) {
         try {

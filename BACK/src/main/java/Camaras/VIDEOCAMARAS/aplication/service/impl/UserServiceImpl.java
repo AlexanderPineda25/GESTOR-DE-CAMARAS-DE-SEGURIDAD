@@ -88,7 +88,6 @@ public class UserServiceImpl implements UserService {
                     role,
                     encodedPassword
             );
-
             userRepository.save(user);
         }
     }
@@ -147,12 +146,10 @@ public class UserServiceImpl implements UserService {
 
         String principal = ((org.springframework.security.core.userdetails.User) authentication.getPrincipal()).getUsername();
 
-        // Busca primero por email, luego por username
         User user = userRepository.findByEmail(principal)
                 .orElseGet(() -> userRepository.findByUsername(principal)
                         .orElseThrow(() -> new NotFoundException("Usuario no encontrado")));
 
-        // Usa el mapper directamente
         return UserMapper.toDto(user);
     }
 

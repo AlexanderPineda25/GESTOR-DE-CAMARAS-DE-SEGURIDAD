@@ -31,23 +31,27 @@ public class FrameGrabberService {
     }
 
     public FFmpegFrameGrabber createGrabber(Long cameraId) throws FrameGrabber.Exception {
-        Camera camera = cameraService.findEntityById(cameraId); // Solo esto
-
-        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(camera.getStreamUrl());
-        configureGrabber(grabber);
+        Camera camera = cameraService.findEntityById(cameraId);
+        String streamUrl = camera.getStreamUrl();
+        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(streamUrl);
+        configureGrabber(grabber, streamUrl);
         return grabber;
     }
 
-    private void configureGrabber(FFmpegFrameGrabber grabber) {
-        grabber.setOption("rtsp_transport", rtspTransport);
+    private void configureGrabber(FFmpegFrameGrabber grabber, String streamUrl) {
+        if (streamUrl.startsWith("rtsp://")) {
+            grabber.setFormat("rtsp");
+            grabber.setOption("rtsp_transport", rtspTransport);
+        } else if (streamUrl.startsWith("http://") && streamUrl.contains("/video")) {
+            grabber.setFormat("mjpeg"); // <-- SOLO SI TIENES PROBLEMAS SIN ESTA LÍNEA
+        }
         grabber.setImageWidth(grabberWidth);
         grabber.setImageHeight(grabberHeight);
         grabber.setFrameRate(frameRate);
-        grabber.setVideoCodecName("h264");
-        grabber.setFormat("rtsp");
-        grabber.setOption("stimeout", "5000000"); // 5s timeout
+        grabber.setOption("stimeout", "5000000");
         grabber.setOption("threads", "2");
     }
+
 
     public void reconfigureGrabber(FFmpegFrameGrabber grabber, int width, int height, int fps) {
         try {
@@ -94,7 +98,6 @@ public class FrameGrabberService {
                 try {
                     grabber.stop();
                 } catch (Exception e) {
-                    // Loggear pero no propagar
                     System.err.println("Error al detener grabber: " + e.getMessage());
                 }
             }

@@ -1,12 +1,10 @@
     package Camaras.VIDEOCAMARAS.infraestructure.controller;
 
     import Camaras.VIDEOCAMARAS.aplication.service.*;
-    import Camaras.VIDEOCAMARAS.aplication.service.impl.ImageProcessingService;
     import Camaras.VIDEOCAMARAS.domain.model.Camera;
     import Camaras.VIDEOCAMARAS.domain.model.GeoLocation;
     import Camaras.VIDEOCAMARAS.domain.model.User;
     import Camaras.VIDEOCAMARAS.domain.model.enums.CameraStatus;
-    import Camaras.VIDEOCAMARAS.domain.model.enums.FilterType;
     import Camaras.VIDEOCAMARAS.domain.repository.CameraRepository;
     import Camaras.VIDEOCAMARAS.infraestructure.mapper.CameraMapper;
     import Camaras.VIDEOCAMARAS.shared.dto.*;

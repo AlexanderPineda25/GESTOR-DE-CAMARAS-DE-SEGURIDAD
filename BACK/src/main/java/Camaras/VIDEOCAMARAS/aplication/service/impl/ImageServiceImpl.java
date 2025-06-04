@@ -14,10 +14,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.io.IOException;
 
 @Service
 public class ImageServiceImpl implements ImageService {
@@ -32,7 +35,6 @@ public class ImageServiceImpl implements ImageService {
         this.cameraRepository = cameraRepository;
     }
 
-    // Guarda una imagen asociada a una cámara
     @Override
     @Transactional
     public ImageDto saveImage(ImageDto imageDto, Long cameraId) {
@@ -40,16 +42,27 @@ public class ImageServiceImpl implements ImageService {
             Camera camera = cameraRepository.findById(cameraId)
                     .orElseThrow(() -> new NotFoundException("Cámara no encontrada para guardar imagen"));
 
-            Image image = ImageFactory.create(imageDto, camera);
+            String baseDir = "C:/cctv_images/";
+            String fileName = "img_" + System.currentTimeMillis() + "_" + camera.getId() + ".png";
+            String filePath = baseDir + fileName;
+
+            Files.createDirectories(Path.of(baseDir));
+            Files.write(Path.of(filePath), imageDto.getRawImage());
+
+            ImageDto dtoWithPath = imageDto.toBuilder().filePath(filePath).build();
+            Image image = ImageFactory.create(dtoWithPath, camera);
             image = imageRepository.save(image);
 
-            log.info("Imagen guardada exitosamente: id={}, cameraId={}", image.getId(), cameraId);
+            log.info("Imagen guardada exitosamente: id={}, cameraId={}, filePath={}", image.getId(), cameraId, filePath);
             return ImageMapper.toDto(image);
+
         } catch (Exception e) {
             log.error("Error guardando imagen para cameraId={}: {}", cameraId, e.getMessage(), e);
-            throw e;
+            throw new RuntimeException("Error guardando imagen", e);
         }
     }
+
+
 
     // Obtiene todas las imágenes asociadas a una cámara
     @Override
